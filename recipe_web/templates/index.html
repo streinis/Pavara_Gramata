@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pavāra Grāmata</title>
+  <link rel="stylesheet" href="/static/css/style.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">
+      <span class="logo-title">Pavāra Grāmata</span>
+      <span class="logo-sub">recipe book</span>
+    </div>
+    <button class="sidebar-toggle" onclick="toggleSidebar()">&#9776;</button>
+  </div>
+
+  <!-- Tabs: My recipes / Feed -->
+  <div class="tab-bar">
+    <button class="tab-btn active" id="tab-mine" onclick="switchTab('mine')">📖 My Recipes</button>
+    <button class="tab-btn"        id="tab-feed" onclick="switchTab('feed')">🌍 Community</button>
+  </div>
+
+  <div id="panel-mine">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="search-input" placeholder="Search recipes…" oninput="filterList()"/>
+    </div>
+    <div class="filter-pills" id="filter-pills"></div>
+    <div class="divider"></div>
+    <div class="recipe-list-wrap">
+      <ul class="recipe-list" id="recipe-list"></ul>
+    </div>
+  </div>
+
+  <div id="panel-feed" style="display:none">
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input type="text" id="feed-search" placeholder="Search community…" oninput="filterFeed()"/>
+    </div>
+    <div class="divider"></div>
+    <div class="recipe-list-wrap">
+      <ul class="recipe-list" id="feed-list"></ul>
+    </div>
+  </div>
+
+  <div class="sidebar-bottom">
+    <button class="btn btn-new"    onclick="createNew()">＋ New</button>
+    <button class="btn btn-upload" onclick="triggerUpload()">⬆ Upload</button>
+    <button class="btn btn-online" onclick="openOnlineModal()">🌐</button>
+    <button class="btn btn-account" onclick="openAccountModal()">👤</button>
+    <input type="file" id="upload-input" accept=".json,.txt" style="display:none" onchange="handleUpload(event)"/>
+  </div>
+</aside>
+
+<main class="main" id="main">
+  <div class="toolbar">
+    <button class="btn btn-save"   onclick="saveRecipe()">✓ Save</button>
+    <button class="btn btn-delete" onclick="deleteRecipe()">✕ Delete</button>
+    <div class="toolbar-sep"></div>
+    <button class="fav-btn" id="fav-btn" onclick="toggleFav()">☆</button>
+    <div class="toolbar-sep"></div>
+
+    <!-- Public toggle -->
+    <button class="public-btn" id="public-btn" onclick="togglePublic()" title="Share to community">🌍 Share</button>
+
+    <div class="toolbar-sep"></div>
+    <label class="toolbar-label">Servings</label>
+    <button class="step-btn" onclick="changeServings(-1)">−</button>
+    <span id="servings-display">4</span>
+    <button class="step-btn" onclick="changeServings(1)">＋</button>
+    <div class="toolbar-sep"></div>
+    <label class="toolbar-label">Timer</label>
+    <span class="timer-display" id="timer-display">00:00</span>
+    <button class="step-btn" onclick="toggleTimer()">▶</button>
+    <button class="step-btn" onclick="resetTimer()">↺</button>
+  </div>
+
+  <div class="editor-scroll">
+    <div class="editor">
+
+      <!-- Recipe image -->
+      <div class="image-section">
+        <div class="image-preview" id="image-preview" onclick="document.getElementById('image-input').click()">
+          <span class="image-placeholder">📷 Click to add a photo</span>
+        </div>
+        <input type="file" id="image-input" accept="image/*" style="display:none" onchange="handleImageSelect(event)"/>
+        <button class="remove-image-btn" id="remove-image-btn" onclick="removeImage()" style="display:none">✕ Remove photo</button>
+      </div>
+
+      <!-- Name -->
+      <div class="name-wrap">
+        <div class="name-field" id="recipe-name" contenteditable="true"
+             data-placeholder="Recipe name…"></div>
+        <div class="name-underline"></div>
+      </div>
+
+      <!-- Meta -->
+      <div class="meta-row">
+        <label>Prep <span class="unit">min</span>
+          <input type="number" id="prep-time" min="0" placeholder="0"/>
+        </label>
+        <label>Cook <span class="unit">min</span>
+          <input type="number" id="cook-time" min="0" placeholder="0"/>
+        </label>
+        <button class="link-btn" onclick="setTimerFromCook()">⏱ Set timer from cook time</button>
+      </div>
+
+      <!-- Tags -->
+      <div class="tag-section">
+        <div class="tag-label-row">
+          <span class="section-label">TAGS</span>
+          <span class="tag-hint">— click to add, click again to remove</span>
+        </div>
+        <div class="custom-tag-row">
+          <input type="text" id="custom-tag-input" placeholder="Custom tag…"
+                 onkeydown="if(event.key==='Enter') addCustomTag()"/>
+          <button class="btn btn-tag-add" onclick="addCustomTag()">＋ Add</button>
+        </div>
+        <div class="preset-label">Quick add:</div>
+        <div class="preset-pills" id="preset-pills"></div>
+        <div class="active-tags" id="active-tags"></div>
+      </div>
+
+      <!-- Two columns -->
+      <div class="columns">
+        <div class="col">
+          <div class="col-label">INGREDIENTS</div>
+          <textarea id="ingredients-box" placeholder="One ingredient per line…" rows="14"></textarea>
+        </div>
+        <div class="col">
+          <div class="col-label">INSTRUCTIONS</div>
+          <textarea id="recipe-box" placeholder="Write your steps here…" rows="14"></textarea>
+        </div>
+      </div>
+
+      <div class="notes-section">
+        <div class="col-label">NOTES</div>
+        <textarea id="notes-box" placeholder="Tips, substitutions, variations…" rows="3"></textarea>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- ── Feed recipe modal ──────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="feed-modal" onclick="closeModal('feed-modal')">
+  <div class="modal modal-wide" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2 id="feed-modal-title">Recipe</h2>
+      <button class="modal-close" onclick="closeModal('feed-modal')">✕</button>
+    </div>
+    <div class="feed-modal-body" id="feed-modal-body"></div>
+  </div>
+</div>
+
+<!-- ── Online modal ───────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="online-modal" onclick="closeModal('online-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>Search online recipes</h2>
+      <button class="modal-close" onclick="closeModal('online-modal')">✕</button>
+    </div>
+    <div class="modal-search-row">
+      <input type="text" id="online-search-input" placeholder="e.g. chicken pasta…"
+             onkeydown="if(event.key==='Enter') searchOnline()"/>
+      <button class="btn btn-new" onclick="searchOnline()">Search</button>
+    </div>
+    <div class="modal-status" id="online-status"></div>
+    <ul class="modal-results" id="online-results"></ul>
+  </div>
+</div>
+
+<!-- ── Account modal ──────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="account-modal" onclick="closeModal('account-modal')">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h2>⚙️ Settings</h2>
+      <button class="modal-close" onclick="closeModal('account-modal')">✕</button>
+    </div>
+    <div class="account-body">
+      <div class="acc-section-label">YOUR DEVICE</div>
+      <p style="font-size:13px;color:var(--text-s);margin-bottom:8px">Recipes are saved to this device. Export to back them up.</p>
+      <div class="acc-section-label">DATA</div>
+      <div class="acc-actions">
+        <button class="btn btn-upload" onclick="exportRecipes()">⬇ Export (.json)</button>
+        <button class="btn btn-new"    onclick="document.getElementById('upload-input').click()">⬆ Import (.json)</button>
+      </div>
+      <div class="acc-section-label" style="margin-top:20px">APPEARANCE</div>
+      <label class="acc-row">
+        <span>Theme</span>
+        <select id="acc-theme" onchange="applyTheme(this.value)">
+          <option value="dark">Dark</option>
+          <option value="light">Light</option>
+        </select>
+      </label>
+      <div class="acc-actions" style="margin-top:16px">
+        <button class="btn btn-save" onclick="saveAccount()">Save</button>
+      </div>
+      <div class="acc-status" id="acc-status"></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
